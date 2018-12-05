@@ -1,0 +1,31 @@
+{
+  "name": "oidcsessioncheck",
+  "version": "0.0.1",
+  "description": "JavaScript library to assist with binding sessions between an OIDC OP and RP",
+  "main": "sessionCheck.js",
+  "scripts": {
+      "pretest": "eslint --ignore-path .gitignore ."
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ForgeRock/oidcSessionCheck.git"
+  },
+  "keywords": [
+    "oidc",
+    "session"
+  ],
+  "author": "Jake Feasel",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/ForgeRock/oidcSessionCheck/issues"
+  },
+  "homepage": "https://github.com/ForgeRock/oidcSessionCheck#readme",
+  "devDependencies": {
+    "eslint": "^5.9.0",
+    "eslint-config-standard": "^12.0.0",
+    "eslint-plugin-import": "^2.14.0",
+    "eslint-plugin-node": "^8.0.0",
+    "eslint-plugin-promise": "^4.0.1",
+    "eslint-plugin-standard": "^4.0.0"
+  }
+}
