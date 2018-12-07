@@ -20,6 +20,7 @@
      * @module SessionCheck
      * @param {Object} config - configation needed for working with the OP
      * @param {string} config.subject - The user currently logged into the RP
+     * @param {string} config.clientId - The id of this RP client within the OP
      * @param {string} config.opUrl - Full URL to the OP Authorization Endpoint
      * @param {function} config.invalidSessionHandler - function to be called once any problem with the session is detected
      * @param {string} config.redirectUri [sessionCheck.html] - The redirect uri registered in the OP for session-checking purposes
