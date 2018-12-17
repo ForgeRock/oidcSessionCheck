@@ -1,6 +1,6 @@
 {
   "name": "oidcsessioncheck",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "JavaScript library to assist with binding sessions between an OIDC OP and RP",
   "main": "sessionCheck.js",
   "scripts": {

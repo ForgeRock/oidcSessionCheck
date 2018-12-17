@@ -27,6 +27,11 @@
      *
      */
 
+     if (parent.window.origin !== window.origin) {
+         // have to be running within a child frame hosted on the same origin
+         return;
+     }
+
     /**
      * Simple jwt parsing code purely used for extracting claims.
      */

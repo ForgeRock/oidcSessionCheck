@@ -18,7 +18,7 @@ The cookie which identifies the session at the OP is assumed to be unavailable t
 
 This redirection needs to be non-intrusive; it shouldn't be noticeable to the user while they are interacting with the RP. The most practical way to accomplish this is to make use of hidden iframes within the RP application. The RP can set the iframe src value to be the OP authorization endpoint (along with the other required parameters); when this loads, the OP session cookie will be passed along as per normal browser behavior.
 
-The simplest strategy for this interaction is to use the "Implicit Flow" along with the "id_token" response type. Doing so will allow the direct response to the redirect_uri (within the hash fragment of the URL); successful responses will only include the id_token. See the specification for [Implicit Flow Authentication Requests](https://openid.net/specs/openid-connect-core-1_0.html#rfc.section.3.2.2.1) for more details.
+The simplest strategy for this interaction is to use the "Implicit Flow" along with the "id_token" response type. Doing so will allow the direct response to the redirect_uri (passing data within the hash fragment of the URL); successful responses will only include the id_token. See the specification for [Implicit Flow Authentication Requests](https://openid.net/specs/openid-connect-core-1_0.html#rfc.section.3.2.2.1) for more details.
 
 Since this use-case involves simple message passing (with no direct user interaction) there is one more parameter that is passed along in the authentication request - `prompt=none`. By including this parameter, the response will either succeed immediately or fail immediately - there won't be any "prompt" for the user to log in or anything else.
 
