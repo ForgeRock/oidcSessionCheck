@@ -29,8 +29,7 @@ The data that is passed back to the RP's redirect_uri is either an "id_token" (w
 This library automates the iframe creation and message passing between your RP and the OP. It allows you to easily monitor the state of the OP session - you simply need to provide a few details about your operating environment and decide when you want those checks to be made.
 
 The "SessionCheck" module can be loaded in several ways:
- - using a global variable by directly including a script tag: `<script src="sessionCheck.js"></script>`
- - using AMD-style require: `define(['sessionCheck'], function (SessionCheck) { ... });`
+ - using a global variable by directly including a script tag: `<script src="sessionCheckGlobal.js"></script>`
  - using CommonJS modules: `var SessionCheck = require('sessionCheck');`
 
 *Setting up the environment:*
