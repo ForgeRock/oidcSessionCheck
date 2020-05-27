@@ -41,6 +41,9 @@ The "SessionCheck" module can be loaded in several ways:
         invalidSessionHandler: function () {
             logoutFromRP();
         },
+        sessionClaimsHandler: function (claims) {
+            // do something interesting with the current claims
+        },
         // optional
         cooldownPeriod: 5,
         // optional
@@ -49,12 +52,7 @@ The "SessionCheck" module can be loaded in several ways:
 
 *Examples for when to check the session:*
 
-    // check every minute
-    setInterval(function () {
-        sessionCheck.triggerSessionCheck();
-    }, 60000);
-
-    // check with various events:
+    // check with various events based on user interaction:
     document.addEventListener("click", function () {
         sessionCheck.triggerSessionCheck();
     });
@@ -62,12 +60,18 @@ The "SessionCheck" module can be loaded in several ways:
         sessionCheck.triggerSessionCheck();
     });
 
+    // check every minute (not recommended)
+    setInterval(function () {
+        sessionCheck.triggerSessionCheck();
+    }, 60000);
+
 *Details you need to provide:*
 
  - subject - The user currently logged into the RP
  - clientId - The id of this RP client within the OP
  - opUrl - Full URL to the OP Authorization Endpoint
  - invalidSessionHandler - function to be called once any problem with the session is detected
+ - sessionClaimsHandler [optional] - function to be called after every successful session check, with latest claims included
  - redirectUri [default: sessionCheck.html] - The redirect uri registered in the OP for session-checking purposes
  - cooldownPeriod [default: 5] - Minimum time (in seconds) between requests to the opUrl
 
@@ -75,10 +79,12 @@ This library requires that your user is already authenticated prior to creating 
 
 The `invalidSessionHandler` will be called whenever there is a problem detected from the OP response. The intent for this handler is for you to trigger a local log-out event, so that the current RP session is terminated (likely to result in an interactive redirection to the OP so as to obtain a new RP session).
 
+The `sessionClaimsHandler` will be called every time the session check occurs. It will include the claims from the id_token. The intent for this handler is to allow you to respond to various claims that might be included in the id_token - for example, you could use the "exp" claim to warn the user when their session will end. This handler is optional.
+
 You will need to make sure the redirect_uri used for this is registered with the OP. By default, you can use the included [sessionCheck.html](./sessionCheck.html) as the uri to register. Whatever you choose to use, be sure the [sessionCheckFrame.js](./sessionCheckFrame.js) code is included within it.
 
 It is up to you to decide how frequently and in which circumstances you want to check the OP for session status changes. The "cooldownPeriod" setting determines the maximum frequency you want to check the OP. Regardless of how many times you call `triggerSessionCheck()` within that period, it will only be checked once. As a result, you can call this using any combination of events without worrying about flooding the OP with requests.
 
 ## License
 
-MIT. Copyright ForgeRock, Inc. 2018
+MIT. Copyright ForgeRock, Inc. 2020

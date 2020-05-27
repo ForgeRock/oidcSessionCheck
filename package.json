@@ -4,7 +4,7 @@
   "description": "JavaScript library to assist with binding sessions between an OIDC OP and RP",
   "main": "sessionCheck.js",
   "scripts": {
-      "pretest": "eslint --ignore-path .gitignore .",
+      "pretest": "eslint .",
       "build": "browserify --s SessionCheck -o sessionCheckGlobal.js sessionCheck.js"
   },
   "repository": {

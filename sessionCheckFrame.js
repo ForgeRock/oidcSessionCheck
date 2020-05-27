@@ -27,10 +27,10 @@
      *
      */
 
-     if (parent.window.origin !== window.origin) {
-         // have to be running within a child frame hosted on the same origin
-         return;
-     }
+    if (parent.window.origin !== window.origin) {
+        // have to be running within a child frame hosted on the same origin
+        return;
+    }
 
     /**
      * Simple jwt parsing code purely used for extracting claims.
@@ -55,14 +55,23 @@
     if (implict_params.id_token) {
         var new_claims = getIdTokenClaims(implict_params.id_token);
         if (sessionStorage.getItem("sessionCheckNonce") !== new_claims.nonce) {
-            parent.postMessage( "sessionCheckFailed", document.location.origin);
+            parent.postMessage({
+                "message": "sessionCheckFailed"
+            }, document.location.origin);
             return;
         }
 
         if (new_claims.sub !== sessionStorage.getItem("sessionCheckSubject")) {
-            parent.postMessage( "sessionCheckFailed", document.location.origin);
+            parent.postMessage({
+                "message": "sessionCheckFailed"
+            }, document.location.origin);
             return;
         }
+
+        parent.postMessage({
+            "message": "sessionCheckSucceeded",
+            "claims": new_claims
+        }, document.location.origin);
     } else if (implict_params.error) {
         parent.postMessage( "sessionCheckFailed", document.location.origin);
         return;

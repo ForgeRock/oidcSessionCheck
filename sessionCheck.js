@@ -46,8 +46,11 @@
             if (e.origin !== document.location.origin) {
                 return;
             }
-            if (e.data === "sessionCheckFailed") {
+            if (e.data.message === "sessionCheckFailed" && config.invalidSessionHandler) {
                 config.invalidSessionHandler();
+            }
+            if (e.data.message === "sessionCheckSucceeded" && config.sessionClaimsHandler) {
+                config.sessionClaimsHandler(e.data.claims);
             }
         });
 
