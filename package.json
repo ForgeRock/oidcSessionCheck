@@ -1,11 +1,11 @@
 {
   "name": "oidcsessioncheck",
-  "version": "0.0.4",
+  "version": "1.0.0",
   "description": "JavaScript library to assist with binding sessions between an OIDC OP and RP",
   "main": "sessionCheck.js",
   "scripts": {
-      "pretest": "eslint .",
-      "build": "browserify --s SessionCheck -o sessionCheckGlobal.js sessionCheck.js"
+    "pretest": "eslint .",
+    "build": "browserify --s SessionCheck -o sessionCheckGlobal.js sessionCheck.js"
   },
   "repository": {
     "type": "git",
