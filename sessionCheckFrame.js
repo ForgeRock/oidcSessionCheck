@@ -73,7 +73,9 @@
             "claims": new_claims
         }, document.location.origin);
     } else if (implict_params.error) {
-        parent.postMessage( "sessionCheckFailed", document.location.origin);
+        parent.postMessage({
+            "message": "sessionCheckFailed"
+        }, document.location.origin);
         return;
     }
 
