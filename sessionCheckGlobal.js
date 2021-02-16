@@ -38,7 +38,6 @@
          * background OP-session checking
          */
         var iframe = document.createElement("iframe");
-        iframe.setAttribute("src", this.redirectUri);
         iframe.setAttribute("id", "sessionCheckFrame" + this.clientId);
         iframe.setAttribute("style", "display:none");
         document.getElementsByTagName("body")[0].appendChild(iframe);
@@ -70,7 +69,7 @@
         sessionStorage.setItem("sessionCheckNonce", nonce);
         document
             .getElementById("sessionCheckFrame" + config.clientId)
-            .setAttribute("src", config.opUrl + "?client_id=" + config.clientId +
+            .contentWindow.location.replace(config.opUrl + "?client_id=" + config.clientId +
                 "&response_type=id_token&scope=openid&prompt=none&redirect_uri=" +
                 config.redirectUri + "&nonce=" + nonce);
     };
