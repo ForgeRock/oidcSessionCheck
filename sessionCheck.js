@@ -36,12 +36,11 @@
          * Attach a hidden iframe onto the main document body that is used to perform
          * background OP-session checking
          */
-        var iframe = document.createElement("iframe");
-        iframe.setAttribute("id", "sessionCheckFrame" + this.clientId);
-        iframe.setAttribute("style", "display:none");
-        document.getElementsByTagName("body")[0].appendChild(iframe);
-
-        window.addEventListener("message", function (e) {
+        this.iframe = document.createElement("iframe");
+        this.iframe.setAttribute("id", "sessionCheckFrame" + this.clientId);
+        this.iframe.setAttribute("style", "display:none");
+        document.getElementsByTagName("body")[0].appendChild(this.iframe);
+        this.eventListenerHandle = function (e) {
             if (e.origin !== document.location.origin) {
                 return;
             }
@@ -51,7 +50,8 @@
             if (e.data.message === "sessionCheckSucceeded" && config.sessionClaimsHandler) {
                 config.sessionClaimsHandler(e.data.claims);
             }
-        });
+        };
+        window.addEventListener("message", this.eventListenerHandle);
 
         sessionStorage.setItem("sessionCheckSubject", this.subject);
         return this;
@@ -64,10 +64,14 @@
      * the sessionCheckFrame code.
      */
     var idTokenRequest = function(config) {
+        if (!config.iframe) {
+            // eslint-disable-next-line no-console
+            console.warn("This session check instance has been destroyed");
+            return;
+        }
         var nonce = Math.floor(Math.random() * 100000);
         sessionStorage.setItem("sessionCheckNonce", nonce);
-        document
-            .getElementById("sessionCheckFrame" + config.clientId)
+        config.iframe
             .contentWindow.location.replace(config.opUrl + "?client_id=" + config.clientId +
                 "&response_type=id_token&scope=openid&prompt=none&redirect_uri=" +
                 config.redirectUri + "&nonce=" + nonce);
@@ -91,4 +95,34 @@
         idTokenRequestCooldown.call(this);
     };
 
+    /**
+     * Destroys the OIDC session check instance to allow garbage collection; removes the iframe and associated iframe event listeners.
+     * Recommend dereferencing of session check after destruction to prevent use of impotent SessionCheck instance.
+     * @example
+     * // Good example
+     * this.sc = new SessionCheck(config)
+     * // use this.sc, then...
+     * this.sc.destroy()
+     * this.sc = null
+     * @example
+     * // Good example
+     * function() {
+     *   const sc = new SessionCheck(config)
+     *   // use sc, then...
+     *   sc.destroy()
+     * } // at the end of the function the session check goes out of scope and is cleaned up by the garbage collector, along with the iframe and event handler.
+     * @example
+     * // Bad example
+     * this.sc = new SessionCheck(config)
+     * // use this.sc, then...
+     * this.sc = null // does not remove iframe or event listener, meaning events will still occur and the garbage collector will not collect this.sc
+     */
+    module.exports.prototype.destroy = function() {
+        if (this.iframe && this.iframe.parentNode) {
+            this.iframe.parentNode.removeChild(this.iframe);
+        }
+        this.iframe = null;
+        removeEventListener("message", this.eventListenerHandle, false);
+        this.eventListenerHandle = null;
+    };
 }());

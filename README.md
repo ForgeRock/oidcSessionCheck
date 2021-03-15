@@ -85,6 +85,15 @@ You will need to make sure the redirect_uri used for this is registered with the
 
 It is up to you to decide how frequently and in which circumstances you want to check the OP for session status changes. The "cooldownPeriod" setting determines the maximum frequency you want to check the OP. Regardless of how many times you call `triggerSessionCheck()` within that period, it will only be checked once. As a result, you can call this using any combination of events without worrying about flooding the OP with requests.
 
+*Cleaning up the environment*
+
+Once the SessionCheck instance is no longer needed you should `destroy()` and nullify the instance to garbase collect the instance, the related iframe, and global event handlers.
+
+    var sessionCheck = new SessionCheck(config);
+    // use sessionCheck... then when you're done with it...
+    sessionCheck.destroy();
+    sessionCheck = null;
+
 ## License
 
 MIT. Copyright ForgeRock, Inc. 2020
