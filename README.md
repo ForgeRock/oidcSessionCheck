@@ -47,7 +47,9 @@ The "SessionCheck" module can be loaded in several ways:
         // optional
         cooldownPeriod: 5,
         // optional
-        redirectUri: "sessionCheck.html"
+        redirectUri: "sessionCheck.html",
+        // optional
+        scope: "openid"
     });
 
 *Examples for when to check the session:*
@@ -74,6 +76,7 @@ The "SessionCheck" module can be loaded in several ways:
  - sessionClaimsHandler [optional] - function to be called after every successful session check, with latest claims included
  - redirectUri [default: sessionCheck.html] - The redirect uri registered in the OP for session-checking purposes
  - cooldownPeriod [default: 5] - Minimum time (in seconds) between requests to the opUrl
+ - scope [default: openid] - OIDC scope names (space separated) to be requested
 
 This library requires that your user is already authenticated prior to creating an instance of it. You *must* provide the current username of that user - this will be checked against the "subject" claim within the id_token that is returned by the OP. If they don't match, it is assumed that the OP and RP sessions are out of sync, and that will trigger the `invalidSessionHandler`.
 

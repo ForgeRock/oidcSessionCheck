@@ -13,6 +13,7 @@
      * @param {function} config.invalidSessionHandler - function to be called once any problem with the session is detected
      * @param {string} config.redirectUri [sessionCheck.html] - The redirect uri registered in the OP for session-checking purposes
      * @param {number} config.cooldownPeriod [5] - Minimum time (in seconds) between requests to the opUrl
+     * @param {string} config.scope [openid] - Session check scope; can be space-separated list
      */
     module.exports = function (config) {
         var calculatedUriLink;
@@ -32,6 +33,7 @@
         this.opUrl = config.opUrl;
 
         this.cooldownPeriod = config.cooldownPeriod || 5;
+        this.scope = config.scope || "openid";
 
         /*
          * Attach a hidden iframe onto the main document body that is used to perform
@@ -74,7 +76,7 @@
         sessionStorage.setItem("sessionCheckNonce", nonce);
         config.iframe
             .contentWindow.location.replace(config.opUrl + "?client_id=" + config.clientId +
-                "&response_type=id_token&scope=openid&prompt=none&redirect_uri=" +
+                "&response_type=id_token&scope=" + config.scope + "&prompt=none&redirect_uri=" +
                 config.redirectUri + "&nonce=" + nonce);
     };
 
