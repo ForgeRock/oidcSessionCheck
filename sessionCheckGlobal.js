@@ -48,7 +48,7 @@
                 return;
             }
             if (e.data.message === "sessionCheckFailed" && config.invalidSessionHandler) {
-                config.invalidSessionHandler();
+                config.invalidSessionHandler(e.data.reason);
             }
             if (e.data.message === "sessionCheckSucceeded" && config.sessionClaimsHandler) {
                 config.sessionClaimsHandler(e.data.claims);
