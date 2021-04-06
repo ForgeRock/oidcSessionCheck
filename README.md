@@ -38,7 +38,7 @@ The "SessionCheck" module can be loaded in several ways:
         clientId: "myRP",
         opUrl: "https://login.example.com/oauth2/authorize",
         subject: loggedInUsername,
-        invalidSessionHandler: function () {
+        invalidSessionHandler: function (reason) {
             logoutFromRP();
         },
         sessionClaimsHandler: function (claims) {
@@ -72,7 +72,7 @@ The "SessionCheck" module can be loaded in several ways:
  - subject - The user currently logged into the RP
  - clientId - The id of this RP client within the OP
  - opUrl - Full URL to the OP Authorization Endpoint
- - invalidSessionHandler - function to be called once any problem with the session is detected
+ - invalidSessionHandler - function to be called once any problem with the session is detected, with reason to invalid session included
  - sessionClaimsHandler [optional] - function to be called after every successful session check, with latest claims included
  - redirectUri [default: sessionCheck.html] - The redirect uri registered in the OP for session-checking purposes
  - cooldownPeriod [default: 5] - Minimum time (in seconds) between requests to the opUrl

@@ -56,14 +56,16 @@
         var new_claims = getIdTokenClaims(implict_params.id_token);
         if (sessionStorage.getItem("sessionCheckNonce") !== new_claims.nonce) {
             parent.postMessage({
-                "message": "sessionCheckFailed"
+                "message": "sessionCheckFailed",
+                "reason": "nonce_mismatch"
             }, document.location.origin);
             return;
         }
 
         if (new_claims.sub !== sessionStorage.getItem("sessionCheckSubject")) {
             parent.postMessage({
-                "message": "sessionCheckFailed"
+                "message": "sessionCheckFailed",
+                "reason": "subject_mismatch"
             }, document.location.origin);
             return;
         }
@@ -74,7 +76,8 @@
         }, document.location.origin);
     } else if (implict_params.error) {
         parent.postMessage({
-            "message": "sessionCheckFailed"
+            "message": "sessionCheckFailed",
+            "reason": implict_params.error
         }, document.location.origin);
         return;
     }
