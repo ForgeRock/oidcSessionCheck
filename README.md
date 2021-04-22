@@ -14,15 +14,21 @@ When RP applications are owned by the same organization as the OP, there is ofte
 
 ## How it works
 
-The cookie which identifies the session at the OP is assumed to be unavailable to the RP (due to differences in their respective domains). However, there is a mechanism available as part of OIDC which allows that cookie to be used. OIDC works by redirection between the RP and OP - the browser makes a request to the OP's "authorization endpoint"; when finished, the OP redirects the browser back to the RP's "redirect_uri" along with some relevant data. This is the fundamental mechanism by which the RP can learn about the state of the session in the OP.
+The cookie which identifies the session at the OP is assumed to be unavailable to the RP (due to differences in their respective domains). However, there is a mechanism available as part of OIDC which allows that cookie to be used. OIDC works by redirection between the RP and OP - the browser makes a request to the OP's "authorization endpoint"; when finished, the OP redirects the browser back to the RP's "redirect_uri" along with some relevant data. This redirection allows the fundamental "session check" to occur - through it you can compare the details of the session at the RP with the details of the session at the OP.
 
-This redirection needs to be non-intrusive; it shouldn't be noticeable to the user while they are interacting with the RP. The most practical way to accomplish this is to make use of hidden iframes within the RP application. The RP can set the iframe src value to be the OP authorization endpoint (along with the other required parameters); when this loads, the OP session cookie will be passed along as per normal browser behavior.
+This redirection needs to be non-intrusive; it shouldn't be noticeable to the user while they are interacting with the RP. The most practical way to accomplish this is to make use of hidden iframes within the RP application. The RP can set the iframe `src` value to be the OP authorization endpoint (along with the other required parameters); when this loads, the OP session cookie will be passed along as per normal browser behavior.
 
-The simplest strategy for this interaction is to use the "Implicit Flow" along with the "id_token" response type. Doing so will allow the direct response to the redirect_uri (passing data within the hash fragment of the URL); successful responses will only include the id_token. See the specification for [Implicit Flow Authentication Requests](https://openid.net/specs/openid-connect-core-1_0.html#rfc.section.3.2.2.1) for more details.
+Since this use-case involves simple message passing (with no direct user interaction) there is parameter that is always passed along in the authentication request - `prompt=none`. By including this parameter, the response will either succeed immediately or fail immediately - there won't be any "prompt" for the user to log in or anything else.
 
-Since this use-case involves simple message passing (with no direct user interaction) there is one more parameter that is passed along in the authentication request - `prompt=none`. By including this parameter, the response will either succeed immediately or fail immediately - there won't be any "prompt" for the user to log in or anything else.
+Comparing session details can be done in one of two places - either at the OP or the RP. Each choice has advantages and disadvantages. Both approaches involve making a hidden iframe-based request to the authorization endpoint - what distinguishes these approaches is the `response_type` and `id_token_hint` parameters.
 
-The data that is passed back to the RP's redirect_uri is either an "id_token" (which contains the logged-in user's details) or an "error" parameter. The state of the user's session on the OP will determine which of these values are returned. These must be read by the redirect_uri page, and based on the values it must use the [postMessage](https://developer.mozilla.org/en-US/docs/Web/API/Window/postMessage) API to communicate the results to the RP parent frame.
+### response_type=id_token
+If you compare session details at the RP, the authorization request uses `response_type=id_token` to try to get back a new `id_token` value representing the state of the OP session. This is essentially an "implicit" OIDC grant; the result (either a new `id_token` or an error message) will be passed back to the RP redirect URI within the hash fragment (see the specification for [Implicit Flow Authentication Requests](https://openid.net/specs/openid-connect-core-1_0.html#rfc.section.3.2.2.1) for more details). When the current OP session is still valid, the RP can compare the claims from the new `id_token` with the claims from its original `id_token`. The RP can then decide which claim differences matter to it (for example, a different subject), and respond accordingly. This is the default behavior for this library.
+
+### response_type=none
+If you compare session details at the OP, the RP has to send along its original `id_token` in the authorization request as the `id_token_hint` parameter. The expectation is that the OP will use the claims from the provided `id_token` and compare them with the details of the OP session (as identified by the OP session cookie which is also included in the authorization request). In this case, the RP does not need any particular information when the session is still valid; as such, the authorization request will include `response_type=none`. Depending on how the OP compares the details, it will either respond with an error such as `login_required` or with no URL parameters at all - indicating that the session is still valid. This is the pattern of session checking [documented for ForgeRock  Access Management](https://backstage.forgerock.com/docs/am/7/oidc1-guide/manage-sessions-openid-connect.html#session_management_state) - although both options will work with ForgeRock Access Management.
+
+Regardless of the approach used, the response from the OP must be read by the redirect_uri page within the iframe. Based on the parameters provided, it must use the [postMessage](https://developer.mozilla.org/en-US/docs/Web/API/Window/postMessage) API to communicate the results to the RP parent frame.
 
 ## Using this library
 
@@ -33,25 +39,41 @@ The "SessionCheck" module can be loaded in several ways:
  - using CommonJS modules: `var SessionCheck = require('sessionCheck');`
 
 *Setting up the environment:*
-
+```javascript
     var sessionCheck = new SessionCheck({
         clientId: "myRP",
         opUrl: "https://login.example.com/oauth2/authorize",
+
+        // optional, defaults to "id_token". Other valid value is "none"
+        responseType: "id_token",
+
+        // optional, used with `response_type=id_token` to enforce subject consistency
         subject: loggedInUsername,
+
+        // required if using `response_type=none`. If used with `response_type=id_token`, will be used to enforce subject consistency
+        idIoken: current_id_token,
+
+        // required function to handle invalid sessions. Take whatever appropriate measures for your app here.
+        // reason could be interaction_required, login_required, subject_mismatch, nonce_mismatch or possibly other responses from the OP
         invalidSessionHandler: function (reason) {
             logoutFromRP();
         },
+
+        // optional. Only called when using `responseType=id_token`
         sessionClaimsHandler: function (claims) {
-            // do something interesting with the current claims
+            // do something interesting with the new claims, like compare them to old claims for meaningful differences to the session
         },
+
         // optional
         cooldownPeriod: 5,
+
         // optional
         redirectUri: "sessionCheck.html",
-        // optional
+
+        // optional - only used with `responseType=id_token`
         scope: "openid"
     });
-
+```
 *Examples for when to check the session:*
 
     // check with various events based on user interaction:
@@ -69,20 +91,22 @@ The "SessionCheck" module can be loaded in several ways:
 
 *Details you need to provide:*
 
- - subject - The user currently logged into the RP
  - clientId - The id of this RP client within the OP
  - opUrl - Full URL to the OP Authorization Endpoint
- - invalidSessionHandler - function to be called once any problem with the session is detected, with reason to invalid session included
- - sessionClaimsHandler [optional] - function to be called after every successful session check, with latest claims included
+ - responseType [default: id_token] - One of either "id_token" or "none". See "How it works" above for the full description of each.
+ - subject [optional] - Only used with `responseType=id_token`. The user currently logged into the RP. If not supplied, subject changes won't trigger the invalidSessionHandler
+ - idToken - The current id_token value from your original OIDC authorization request. Required if using `responseType=none`
+ - invalidSessionHandler - function to be called once any problem with the session is detected, with reason for the invalid session included
+ - sessionClaimsHandler [optional] - function to be called after every successful session check, with latest claims included. Only used with `responseType=id_token`.
  - redirectUri [default: sessionCheck.html] - The redirect uri registered in the OP for session-checking purposes
  - cooldownPeriod [default: 5] - Minimum time (in seconds) between requests to the opUrl
- - scope [default: openid] - OIDC scope names (space separated) to be requested
+ - scope [default: openid] - OIDC scope names (space separated) to be requested. Only used with `responseType=id_token`.
 
-This library requires that your user is already authenticated prior to creating an instance of it. You *must* provide the current username of that user - this will be checked against the "subject" claim within the id_token that is returned by the OP. If they don't match, it is assumed that the OP and RP sessions are out of sync, and that will trigger the `invalidSessionHandler`.
+This library requires that your user is already authenticated prior to creating an instance of it. If you are using `responseType=none`, you *must* provide the current `id_token` associated with the current authenticated session. If you are using `responseType=id_token`, you can provide the current "subject" of the current session, and this will be checked against the "subject" claim within the id_token that is returned by the OP. If they don't match, it is assumed that the OP and RP sessions are out of sync, and that will trigger the `invalidSessionHandler` with the reason "subject_mismatch".
 
-The `invalidSessionHandler` will be called whenever there is a problem detected from the OP response. The intent for this handler is for you to trigger a local log-out event, so that the current RP session is terminated (likely to result in an interactive redirection to the OP so as to obtain a new RP session).
+The `invalidSessionHandler` will be called whenever there is a problem detected from the OP response. The intent for this handler is for you to trigger a local log-out event, so that the current RP session is terminated. This will likely result in an interactive OIDC-based redirection to the OP so as to obtain a new RP session.
 
-The `sessionClaimsHandler` will be called every time the session check occurs. It will include the claims from the id_token. The intent for this handler is to allow you to respond to various claims that might be included in the id_token - for example, you could use the "exp" claim to warn the user when their session will end. This handler is optional.
+If you are using `responseType=id_token`, the `sessionClaimsHandler` will be called every time the session check occurs. It will include the claims from the new id_token. The intent for this handler is to allow you to respond to various claims that might be included in the id_token - for example, you could use the "exp" claim to warn the user when their session will end. This handler is optional.
 
 You will need to make sure the redirect_uri used for this is registered with the OP. By default, you can use the included [sessionCheck.html](./sessionCheck.html) as the uri to register. Whatever you choose to use, be sure the [sessionCheckFrame.js](./sessionCheckFrame.js) code is included within it.
 
@@ -90,13 +114,15 @@ It is up to you to decide how frequently and in which circumstances you want to 
 
 *Cleaning up the environment*
 
-Once the SessionCheck instance is no longer needed you should `destroy()` and nullify the instance to garbase collect the instance, the related iframe, and global event handlers.
+Once the SessionCheck instance is no longer needed you should `destroy()` and nullify the instance to garbage collect the instance, the related iframe, and global event handlers.
 
+```javascript
     var sessionCheck = new SessionCheck(config);
     // use sessionCheck... then when you're done with it...
     sessionCheck.destroy();
     sessionCheck = null;
+```
 
 ## License
 
-MIT. Copyright ForgeRock, Inc. 2020
+MIT. Copyright ForgeRock, Inc. 2020-2021

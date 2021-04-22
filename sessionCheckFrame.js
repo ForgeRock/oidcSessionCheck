@@ -2,17 +2,17 @@
     "use strict";
     /**
      * This code is designed to run in the context of a window (or frame)
-     * that has been loaded as the redirect_uri target of an OIDC implicit
-     * flow. As such, it is expected that there will be hash fragment values
-     * that appear as query string values. Note that it is expected that this
-     * is using the "id_token" response_type; there should not be any "access_token"
-     * values present in the hash fragment.
+     * that has been loaded as the redirect_uri target of an OIDC grant. Parameters
+     * passed to this window may be provided in the hash fragment values or in the
+     * query string; in either case, they will be provided as normal key1=value&key2=value
+     * entries. Note that it is expected that there should never be any "access_token"
+     * values present in either form of the parameters.
      *
-     * For more details see :
+     * For more details on the hash fragment query string format see :
      * https://openid.net/specs/openid-connect-core-1_0.html#ImplicitAuthResponse
      *
-     * This code expects there to be two values in sessionStorage prior to handling the
-     * authentication response:
+     * If you are using the "id_token" response type, the code expects there to be
+     * these values in sessionStorage prior to handling the authentication response:
      *
      * - "sessionCheckNonce" - This should be set during the authentication request, and it must
      *                         match the value found in the "nonce" claim of the id_token
@@ -41,8 +41,9 @@
         );
     }
 
-    var implict_params = window.location.hash
+    var response_params = window.location.hash
         .replace("#","")
+        .concat("&" + window.location.search.replace("?", ""))
         .split("&")
         .reduce(function (result, entry) {
             var pair = entry.split("=");
@@ -52,8 +53,9 @@
             return result;
         }, {});
 
-    if (implict_params.id_token) {
-        var new_claims = getIdTokenClaims(implict_params.id_token);
+    // will only be seen when the responseType is "id_token"
+    if (response_params.id_token) {
+        var new_claims = getIdTokenClaims(response_params.id_token);
         if (sessionStorage.getItem("sessionCheckNonce") !== new_claims.nonce) {
             parent.postMessage({
                 "message": "sessionCheckFailed",
@@ -62,7 +64,7 @@
             return;
         }
 
-        if (new_claims.sub !== sessionStorage.getItem("sessionCheckSubject")) {
+        if (sessionStorage.getItem("sessionCheckSubject") && new_claims.sub !== sessionStorage.getItem("sessionCheckSubject")) {
             parent.postMessage({
                 "message": "sessionCheckFailed",
                 "reason": "subject_mismatch"
@@ -74,10 +76,10 @@
             "message": "sessionCheckSucceeded",
             "claims": new_claims
         }, document.location.origin);
-    } else if (implict_params.error) {
+    } else if (response_params.error) {
         parent.postMessage({
             "message": "sessionCheckFailed",
-            "reason": implict_params.error
+            "reason": response_params.error
         }, document.location.origin);
         return;
     }
