@@ -28,7 +28,7 @@
         } else {
             this.redirectUri = config.redirectUri;
         }
-
+        this.request_check_count = 0;
         this.subject = config.subject;
         this.idToken = config.idToken;
         this.clientId = config.clientId;
@@ -53,19 +53,19 @@
         this.iframe.setAttribute("id", "sessionCheckFrame" + this.clientId);
         this.iframe.setAttribute("style", "display:none");
         document.getElementsByTagName("body")[0].appendChild(this.iframe);
-        this.eventListenerHandle = function (e) {
+        this.eventListenerHandle = (function (e) {
             if (e.origin !== document.location.origin) {
                 return;
             }
             if (e.data.message === "sessionCheckFailed" && config.invalidSessionHandler) {
-                config.invalidSessionHandler(e.data.reason);
+                config.invalidSessionHandler(e.data.reason, this.request_check_count);
             }
 
             // Note that "sessionCheckSucceeded" will only be triggered if using responseType=id_token
             if (e.data.message === "sessionCheckSucceeded" && config.sessionClaimsHandler) {
-                config.sessionClaimsHandler(e.data.claims);
+                config.sessionClaimsHandler(e.data.claims, this.request_check_count);
             }
-        };
+        }).bind(this);
         window.addEventListener("message", this.eventListenerHandle);
 
         if (this.subject) {
@@ -119,7 +119,7 @@
             var timestamp = (new Date()).getTime();
             if (!this.checkSessionTimestamp || (this.checkSessionTimestamp + (this.cooldownPeriod * 1000)) < timestamp) {
                 this.checkSessionTimestamp = timestamp;
-
+                this.request_check_count++;
                 idTokenRequest(this);
             }
         }

@@ -55,12 +55,15 @@ The "SessionCheck" module can be loaded in several ways:
 
         // required function to handle invalid sessions. Take whatever appropriate measures for your app here.
         // reason could be interaction_required, login_required, subject_mismatch, nonce_mismatch or possibly other responses from the OP
-        invalidSessionHandler: function (reason) {
+        // request_check_count is an integer representing the number of session check requests that have been attempted, as of this invocation
+        invalidSessionHandler: function (reason, request_check_count) {
             logoutFromRP();
         },
 
         // optional. Only called when using `responseType=id_token`
-        sessionClaimsHandler: function (claims) {
+        // claims is the detailed claim information obtained from the latest id_token response
+        // request_check_count is an integer representing the number of session check requests that have been attempted, as of this invocation
+        sessionClaimsHandler: function (claims, request_check_count) {
             // do something interesting with the new claims, like compare them to old claims for meaningful differences to the session
         },
 
@@ -96,15 +99,15 @@ The "SessionCheck" module can be loaded in several ways:
  - responseType [default: id_token] - One of either "id_token" or "none". See "How it works" above for the full description of each.
  - subject [optional] - Only used with `responseType=id_token`. The user currently logged into the RP. If not supplied, subject changes won't trigger the invalidSessionHandler
  - idToken - The current id_token value from your original OIDC authorization request. Required if using `responseType=none`
- - invalidSessionHandler - function to be called once any problem with the session is detected, with reason for the invalid session included
- - sessionClaimsHandler [optional] - function to be called after every successful session check, with latest claims included. Only used with `responseType=id_token`.
+ - invalidSessionHandler - function to be called once any problem with the session is detected, with reason for the invalid sessions and request count included
+ - sessionClaimsHandler [optional] - function to be called after every successful session check, with latest claims and request count included. Only used with `responseType=id_token`.
  - redirectUri [default: sessionCheck.html] - The redirect uri registered in the OP for session-checking purposes
  - cooldownPeriod [default: 5] - Minimum time (in seconds) between requests to the opUrl
  - scope [default: openid] - OIDC scope names (space separated) to be requested. Only used with `responseType=id_token`.
 
 This library requires that your user is already authenticated prior to creating an instance of it. If you are using `responseType=none`, you *must* provide the current `id_token` associated with the current authenticated session. If you are using `responseType=id_token`, you can provide the current "subject" of the current session, and this will be checked against the "subject" claim within the id_token that is returned by the OP. If they don't match, it is assumed that the OP and RP sessions are out of sync, and that will trigger the `invalidSessionHandler` with the reason "subject_mismatch".
 
-The `invalidSessionHandler` will be called whenever there is a problem detected from the OP response. The intent for this handler is for you to trigger a local log-out event, so that the current RP session is terminated. This will likely result in an interactive OIDC-based redirection to the OP so as to obtain a new RP session.
+The `invalidSessionHandler` will be called whenever there is a problem detected from the OP response. The intent for this handler is for you to trigger a local log-out event, so that the current RP session is terminated. This will likely result in an interactive OIDC-based redirection to the OP so as to obtain a new RP session. It will be given the reason for the failure, along with the number of attempts that have so far been made to check the session. You might find using these details to handle specific cases can result in a better user-experience for those cases.
 
 If you are using `responseType=id_token`, the `sessionClaimsHandler` will be called every time the session check occurs. It will include the claims from the new id_token. The intent for this handler is to allow you to respond to various claims that might be included in the id_token - for example, you could use the "exp" claim to warn the user when their session will end. This handler is optional.
 
