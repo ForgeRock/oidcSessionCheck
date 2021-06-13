@@ -12,6 +12,8 @@
      * @param {string} config.clientId - The id of this RP client within the OP
      * @param {string} config.opUrl - Full URL to the OP Authorization Endpoint
      * @param {function} config.invalidSessionHandler - function to be called once any problem with the session is detected
+     * @param {function} [config.initialSessionSuccessHandler] - optional function to be called after the first successful session check request.
+     * @param {function} [config.sessionClaimsHandler] - optional function to be called after every session check request. Only invoked when using responseType=id_token. Includes the claims and the count of session check requests that have been made so far.
      * @param {string} [config.redirectUri=sessionCheck.html] - The redirect uri registered in the OP for session-checking purposes
      * @param {number} [config.cooldownPeriod=5] - Minimum time (in seconds) between requests to the opUrl
      * @param {string} [config.scope=openid] - Session check scope; can be space-separated list
@@ -61,9 +63,17 @@
                 config.invalidSessionHandler(e.data.reason, this.request_check_count);
             }
 
-            // Note that "sessionCheckSucceeded" will only be triggered if using responseType=id_token
-            if (e.data.message === "sessionCheckSucceeded" && config.sessionClaimsHandler) {
-                config.sessionClaimsHandler(e.data.claims, this.request_check_count);
+
+            if (e.data.message === "sessionCheckSucceeded") {
+
+                // Note that "sessionCheckSucceeded" will only be triggered if using responseType=id_token
+                if (config.sessionClaimsHandler && e.data.claims) {
+                    config.sessionClaimsHandler(e.data.claims, this.request_check_count);
+                }
+
+                if (config.initialSessionSuccessHandler && this.request_check_count === 1) {
+                    config.initialSessionSuccessHandler();
+                }
             }
         }).bind(this);
         window.addEventListener("message", this.eventListenerHandle);
@@ -82,8 +92,7 @@
      */
     var idTokenRequest = function(config) {
         if (!config.iframe) {
-            // eslint-disable-next-line no-console
-            console.warn("This session check instance has been destroyed");
+            // This session check instance has been destroyed
             return;
         }
         var authorizationUrl = config.opUrl + "?prompt=none" +
