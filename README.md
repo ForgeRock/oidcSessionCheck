@@ -101,6 +101,7 @@ The "SessionCheck" module can be loaded in several ways:
  - idToken - The current id_token value from your original OIDC authorization request. Required if using `responseType=none`
  - invalidSessionHandler - function to be called once any problem with the session is detected, with reason for the invalid sessions and request count included
  - sessionClaimsHandler [optional] - function to be called after every successful session check, with latest claims and request count included. Only used with `responseType=id_token`.
+ - initialSessionSuccessHandler [optional] - optional function to be called after the first successful session check request.
  - redirectUri [default: sessionCheck.html] - The redirect uri registered in the OP for session-checking purposes
  - cooldownPeriod [default: 5] - Minimum time (in seconds) between requests to the opUrl
  - scope [default: openid] - OIDC scope names (space separated) to be requested. Only used with `responseType=id_token`.
@@ -110,6 +111,8 @@ This library requires that your user is already authenticated prior to creating 
 The `invalidSessionHandler` will be called whenever there is a problem detected from the OP response. The intent for this handler is for you to trigger a local log-out event, so that the current RP session is terminated. This will likely result in an interactive OIDC-based redirection to the OP so as to obtain a new RP session. It will be given the reason for the failure, along with the number of attempts that have so far been made to check the session. You might find using these details to handle specific cases can result in a better user-experience for those cases.
 
 If you are using `responseType=id_token`, the `sessionClaimsHandler` will be called every time the session check occurs. It will include the claims from the new id_token. The intent for this handler is to allow you to respond to various claims that might be included in the id_token - for example, you could use the "exp" claim to warn the user when their session will end. This handler is optional.
+
+The `initialSessionSuccessHandler` will be called once, upon the first successful session check request. This can be a useful function to define if you don't want to load any main application code until after you have established that the current session is valid.
 
 You will need to make sure the redirect_uri used for this is registered with the OP. By default, you can use the included [sessionCheck.html](./sessionCheck.html) as the uri to register. Whatever you choose to use, be sure the [sessionCheckFrame.js](./sessionCheckFrame.js) code is included within it.
 

@@ -83,6 +83,11 @@
             "reason": response_params.error
         }, document.location.origin);
         return;
+    } else {
+        // should only be here when the response_type is "none"
+        parent.postMessage({
+            "message": "sessionCheckSucceeded"
+        }, document.location.origin);
     }
 
 }());
