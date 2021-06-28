@@ -64,8 +64,7 @@
             return;
         }
 
-        if ((sessionStorage.getItem("sessionCheckSubject") && new_claims.sub !== sessionStorage.getItem("sessionCheckSubject")) ||
-            (sessionStorage.getItem("sessionCheckIdToken") && new_claims.sub !== getIdTokenClaims(sessionStorage.getItem("sessionCheckIdToken")).sub)) {
+        if (sessionStorage.getItem("sessionCheckSubject") && new_claims.sub !== sessionStorage.getItem("sessionCheckSubject")) {
             parent.postMessage({
                 "message": "sessionCheckFailed",
                 "reason": "subject_mismatch"
