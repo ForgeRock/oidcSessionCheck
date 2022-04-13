@@ -56,25 +56,30 @@
     // will only be seen when the response_type is "id_token"
     if (response_params.id_token) {
         var new_claims = getIdTokenClaims(response_params.id_token);
-        if (sessionStorage.getItem("sessionCheckNonce") !== new_claims.nonce) {
+        var nonceMap = JSON.parse(sessionStorage.getItem("sessionCheckNonce"));
+        if (nonceMap[response_params.state] !== Number(new_claims.nonce)) {
             parent.postMessage({
                 "message": "sessionCheckFailed",
-                "reason": "nonce_mismatch"
+                "reason": "nonce_mismatch",
+                "authId": response_params.state
             }, document.location.origin);
             return;
         }
 
-        if (sessionStorage.getItem("sessionCheckSubject") && new_claims.sub !== sessionStorage.getItem("sessionCheckSubject")) {
+        var subjectMap = JSON.parse(sessionStorage.getItem("sessionCheckSubject"));
+        if (subjectMap[response_params.state] && new_claims.sub !== subjectMap[response_params.state]) {
             parent.postMessage({
                 "message": "sessionCheckFailed",
-                "reason": "subject_mismatch"
+                "reason": "subject_mismatch",
+                "authId": response_params.state
             }, document.location.origin);
             return;
         }
 
         parent.postMessage({
             "message": "sessionCheckSucceeded",
-            "claims": new_claims
+            "claims": new_claims,
+            "authId": response_params.state
         }, document.location.origin);
     } else if (response_params.error) {
         parent.postMessage({
@@ -85,7 +90,8 @@
     } else {
         // should only be here when the response_type is "none"
         parent.postMessage({
-            "message": "sessionCheckSucceeded"
+            "message": "sessionCheckSucceeded",
+            "authId": response_params.state
         }, document.location.origin);
     }
 
