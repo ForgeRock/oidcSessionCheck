@@ -22,6 +22,7 @@
      * @param {string} config.opUrl - Full URL to the OP Authorization Endpoint
      * @param {string} [config.responseType=id_token] - Response type to use to check the session. Supported options are id_token or none.
      * @param {string} config.clientId - The id of this RP client within the OP
+     * @param {string} config.authId - The unique id to identify this config and any associated requests
      * @param {string} [config.idToken] - The first id_token obtained as part of an interactive grant. Only used with responseType=none.
      * @param {string} [config.redirectUri=sessionCheck.html] - The redirect uri registered in the OP for session-checking purposes
      * @param {string} [config.scope=openid] - Session check scope; can be space-separated list
@@ -33,7 +34,6 @@
         this.request_check_count = 0;
         this.cooldownPeriod = config.cooldownPeriod || 5;
         this.subject = config.subject;
-
         if (config.ssoToken) {
             this.ssoTokenName = config.ssoTokenName || "iPlanetDirectoryPro";
             this.ssoToken = config.ssoToken;
@@ -70,6 +70,7 @@
             }
             this.idToken = config.idToken;
             this.clientId = config.clientId;
+            this.authId = config.authId || "Primary";
             this.opUrl = config.opUrl;
             this.responseType = config.responseType || "id_token";
 
@@ -86,25 +87,24 @@
              * background OP-session checking
              */
             this.iframe = document.createElement("iframe");
-            this.iframe.setAttribute("id", "sessionCheckFrame" + this.clientId);
+            this.iframe.setAttribute("id", "sessionCheckFrame-" + this.authId);
             this.iframe.setAttribute("style", "display:none");
             document.getElementsByTagName("body")[0].appendChild(this.iframe);
             this.eventListenerHandle = (function (e) {
+                if (e.data.authId && e.data.authId !== this.authId) {
+                    return;  
+                }
                 if (e.origin !== document.location.origin) {
                     return;
                 }
                 if (e.data.message === "sessionCheckFailed" && config.invalidSessionHandler) {
                     config.invalidSessionHandler(e.data.reason, this.request_check_count);
                 }
-
-
                 if (e.data.message === "sessionCheckSucceeded") {
-
                     // Note that claims will only be available if using responseType=id_token
                     if (config.sessionClaimsHandler && e.data.claims) {
                         config.sessionClaimsHandler(e.data.claims, this.request_check_count);
                     }
-
                     if (config.initialSessionSuccessHandler && this.request_check_count === 1) {
                         config.initialSessionSuccessHandler();
                     }
@@ -113,7 +113,9 @@
             window.addEventListener("message", this.eventListenerHandle);
 
             if (this.subject) {
-                sessionStorage.setItem("sessionCheckSubject", this.subject);
+                var subjectMap = sessionStorage.getItem("sessionCheckSubject") ? JSON.parse(sessionStorage.getItem("sessionCheckSubject")) : {};
+                subjectMap[this.authId] = this.subject; 
+                sessionStorage.setItem("sessionCheckSubject", JSON.stringify(subjectMap));
             }
         }
 
@@ -147,11 +149,14 @@
             var authorizationUrl = config.opUrl + "?prompt=none" +
                     "&client_id="     + config.clientId +
                     "&response_type=" + config.responseType +
-                    "&redirect_uri="  + config.redirectUri;
+                    "&redirect_uri="  + config.redirectUri + 
+                    "&state=" + config.authId;
 
             if (config.responseType === "id_token") {
                 var nonce = Math.floor(Math.random() * 100000);
-                sessionStorage.setItem("sessionCheckNonce", nonce);
+                var nonceMap = sessionStorage.getItem("sessionCheckNonce") ? JSON.parse(sessionStorage.getItem("sessionCheckNonce")) : {};
+                nonceMap[config.authId] = nonce; 
+                sessionStorage.setItem("sessionCheckNonce", JSON.stringify(nonceMap));
                 authorizationUrl += "&nonce=" + nonce;
             }
 
@@ -212,8 +217,14 @@
         if (this.iframe && this.iframe.parentNode) {
             this.iframe.parentNode.removeChild(this.iframe);
         }
-        this.iframe = null;
+        var subjectMap = sessionStorage.getItem("sessionCheckSubject") ? JSON.parse(sessionStorage.getItem("sessionCheckSubject")) : {};
+        var nonceMap = sessionStorage.getItem("sessionCheckNonce") ? JSON.parse(sessionStorage.getItem("sessionCheckNonce")) : {};
+        delete subjectMap[this.authId];
+        delete nonceMap[this.authId];
+        sessionStorage.setItem("sessionCheckSubject", JSON.stringify(subjectMap));
+        sessionStorage.setItem("sessionCheckNonce", JSON.stringify(nonceMap));
         removeEventListener("message", this.eventListenerHandle, false);
+        this.iframe = null;
         this.eventListenerHandle = null;
     };
 }());
