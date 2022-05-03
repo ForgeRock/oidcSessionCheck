@@ -56,8 +56,8 @@
     // will only be seen when the response_type is "id_token"
     if (response_params.id_token) {
         var new_claims = getIdTokenClaims(response_params.id_token);
-        var nonceMap = JSON.parse(sessionStorage.getItem("sessionCheckNonce"));
-        if (nonceMap[response_params.state] !== Number(new_claims.nonce)) {
+        var nonce = sessionStorage.getItem("sessionCheckNonce-" + response_params.state);
+        if (Number(nonce) !== Number(new_claims.nonce)) {
             parent.postMessage({
                 "message": "sessionCheckFailed",
                 "reason": "nonce_mismatch",
@@ -66,8 +66,8 @@
             return;
         }
 
-        var subjectMap = JSON.parse(sessionStorage.getItem("sessionCheckSubject"));
-        if (subjectMap[response_params.state] && new_claims.sub !== subjectMap[response_params.state]) {
+        var subject = sessionStorage.getItem("sessionCheckSubject-" + response_params.state);
+        if (subject !== undefined && new_claims.sub !== subject) {
             parent.postMessage({
                 "message": "sessionCheckFailed",
                 "reason": "subject_mismatch",

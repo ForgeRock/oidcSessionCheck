@@ -34,6 +34,7 @@
         this.request_check_count = 0;
         this.cooldownPeriod = config.cooldownPeriod || 5;
         this.subject = config.subject;
+
         if (config.ssoToken) {
             this.ssoTokenName = config.ssoTokenName || "iPlanetDirectoryPro";
             this.ssoToken = config.ssoToken;
@@ -113,9 +114,7 @@
             window.addEventListener("message", this.eventListenerHandle);
 
             if (this.subject) {
-                var subjectMap = sessionStorage.getItem("sessionCheckSubject") ? JSON.parse(sessionStorage.getItem("sessionCheckSubject")) : {};
-                subjectMap[this.authId] = this.subject; 
-                sessionStorage.setItem("sessionCheckSubject", JSON.stringify(subjectMap));
+                sessionStorage.setItem("sessionCheckSubject-" + this.authId, this.subject);
             }
         }
 
@@ -154,9 +153,7 @@
 
             if (config.responseType === "id_token") {
                 var nonce = Math.floor(Math.random() * 100000);
-                var nonceMap = sessionStorage.getItem("sessionCheckNonce") ? JSON.parse(sessionStorage.getItem("sessionCheckNonce")) : {};
-                nonceMap[config.authId] = nonce; 
-                sessionStorage.setItem("sessionCheckNonce", JSON.stringify(nonceMap));
+                sessionStorage.setItem("sessionCheckNonce-" + config.authId, nonce);
                 authorizationUrl += "&nonce=" + nonce;
             }
 
@@ -217,12 +214,8 @@
         if (this.iframe && this.iframe.parentNode) {
             this.iframe.parentNode.removeChild(this.iframe);
         }
-        var subjectMap = sessionStorage.getItem("sessionCheckSubject") ? JSON.parse(sessionStorage.getItem("sessionCheckSubject")) : {};
-        var nonceMap = sessionStorage.getItem("sessionCheckNonce") ? JSON.parse(sessionStorage.getItem("sessionCheckNonce")) : {};
-        delete subjectMap[this.authId];
-        delete nonceMap[this.authId];
-        sessionStorage.setItem("sessionCheckSubject", JSON.stringify(subjectMap));
-        sessionStorage.setItem("sessionCheckNonce", JSON.stringify(nonceMap));
+        sessionStorage.removeItem("sessionCheckSubject-" + this.authId);
+        sessionStorage.removeItem("sessionCheckNonce-" + this.authId);
         removeEventListener("message", this.eventListenerHandle, false);
         this.iframe = null;
         this.eventListenerHandle = null;
